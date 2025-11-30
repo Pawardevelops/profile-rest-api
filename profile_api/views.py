@@ -10,7 +10,13 @@ from profile_api.models import UserProfile
 from profile_api.serializers.ProfileSerializer import ProfileSerializer
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
-from profile_api.permissions import UpdateOwnProfile
+from profile_api.permissions import UpdateOwnProfile, UpdateOwnStatus
+from profile_api.serializers.FeedSerializer import FeedSerializer
+from profile_api.models import ProfileFeeditem
+from rest_framework import filters
+from rest_framework.settings import api_settings
+
+from rest_framework.authtoken.views import ObtainAuthToken
 
 class Sanitize():
     def __init__(self, serializer_class, data, partial=False):
@@ -77,3 +83,26 @@ class ProfileViewSet(viewsets.ModelViewSet):
     serializer_class = ProfileSerializer
     authentication_classes = (TokenAuthentication,)
     permission_classes = (UpdateOwnProfile,)
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name', 'email')
+
+class LoginViewSet(ObtainAuthToken):
+    renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES
+    def create(self, request):
+        sanitized_data = Sanitize(self.serializer_class, request.data).sanitize()
+        request.data = sanitized_data
+        print("sanitized_data", sanitized_data)
+        return ObtainAuthToken().post(request)
+
+
+class ProfileFeedViewSet(viewsets.ModelViewSet):
+    """Handle creating and updating profiles"""
+    serializer_class = FeedSerializer
+    queryset = ProfileFeeditem.objects.all()
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (UpdateOwnStatus,IsAuthenticated)
+
+
+    def perform_create(self, serializer):
+        serializer.save(user_profile=self.request.user)
+
