@@ -5,6 +5,12 @@ from rest_framework import request
 from rest_framework import status
 from profile_api.serializers.HelloSerializer import HelloSerializer
 from rest_framework import serializers
+from rest_framework import viewsets
+from profile_api.models import UserProfile
+from profile_api.serializers.ProfileSerializer import ProfileSerializer
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
+from profile_api.permissions import UpdateOwnProfile
 
 class Sanitize():
     def __init__(self, serializer_class, data, partial=False):
@@ -41,7 +47,7 @@ class HelloApiView(APIView):
     def put(self, request, pk=None):
         """Handle updating an object"""
         sanitized_data = Sanitize(self.serializer_class, request.data).sanitize()
-        print(sanitized_data)
+        print(sanitized_data) 
         return Response({"message": "Hello, World!", "name": sanitized_data.get("name")})
 
     def patch(self, request, pk=None):
@@ -53,3 +59,21 @@ class HelloApiView(APIView):
     def delete(self, request, pk=None):
         """Handle deleting an object"""
         return Response({"message": "Hello, World!", "name": "sachin"})
+
+class HelloViewSet(viewsets.ViewSet):
+
+    def list(self, request):
+        """Return a list of APIView features"""
+        an_apiview = [
+            "Uses HTTP methods as functions (get, post, patch, put, delete)",
+            "Is similar to a traditional Django View",
+            "Gives you the most control over your logic",
+            "Is mapped manually to URLs",
+        ]
+        return Response({"message": "Hello, World!", "an_apiview": an_apiview})
+
+class ProfileViewSet(viewsets.ModelViewSet):
+    queryset = UserProfile.objects.all( )
+    serializer_class = ProfileSerializer
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (UpdateOwnProfile,)
